@@ -1,106 +1,72 @@
 import React, { Component } from 'react';
 import './App.css';
+import { VendingMachineAPI } from './VendingMachineAPI';
+import { VendingMachine } from './VendingMachine';
 
-const itemsConfig = [
-    {label: 'Coca-Cola', cost: 0.6},
-    {label: 'Pepsi', cost: 0.5},
-    {label: 'Milk', cost: 1},
-    {label: 'iPhone', cost: 1000},
+const items = [
+    {label: 'Coca-Cola', cost: 60},
+    {label: 'Pepsi', cost: 50},
+    {label: 'Milk', cost: 100},
+    {label: 'iPhone', cost: 100000},
 ];
-
-// 2.7 + 0.1 = 2.8000000000000003
-const safeSum = (a, b) => Number((a + b).toFixed(2));
 
 class App extends Component {
     constructor() {
         super(...arguments);
 
-        this.onClickGet = this.onClickGet.bind(this);
+        this.onClickAddCentsButton = this.onClickAddCentsButton.bind(this);
+        this.onClickItem = this.onClickItem.bind(this);
+
+        this.vendingMachineAPI = new VendingMachineAPI(items, (item, change) => {
+            this.syncStateWithVendingMachine();
+            alert(`You got the ${item.label}! Your change is $${change / 100}`);
+        });
+
         this.state = {
-            money: 0,
+            cents: 0,
             selectedItemIndex: null,
         };
     }
 
-    onClickAddMoneyButton(money) {
-        this.setState(prevState => ({
-            money: safeSum(prevState.money, money),
-        }));
+    /**
+     * We could implement something like "vendingMachineAPI.onChange",
+     * but let's imagine that we can't, because API is very old and hardcoded into hardware.
+     */
+    syncStateWithVendingMachine() {
+        this.setState({
+            cents: this.vendingMachineAPI.cents,
+            selectedItemIndex: this.vendingMachineAPI.selectedItemIndex,
+        });
+    }
+
+    onClickAddCentsButton(cents) {
+        try {
+            this.vendingMachineAPI.insertCents(cents);
+            this.syncStateWithVendingMachine();
+        } catch (error) {
+            alert(error.message);
+        }
     }
 
     onClickItem(itemIndex) {
-        this.setState({
-            selectedItemIndex: itemIndex,
-        });
-    }
-
-    onClickGet() {
-        const selectedItemIndex = this.state.selectedItemIndex;
-
-        this.setState(prevState => ({
-            money: safeSum(prevState.money, -itemsConfig[selectedItemIndex].cost),
-            selectedItemIndex: null,
-        }), () => {
-            alert(`You got the ${itemsConfig[selectedItemIndex].label}! Your charge is $${this.state.money}`);
-        });
+        try {
+            this.vendingMachineAPI.selectItem(itemIndex);
+            this.syncStateWithVendingMachine();
+        } catch (error) {
+            alert(error.message);
+        }
     }
 
     render() {
         return (
             <div className="App">
-                <img
-                    alt="Vending Machine"
-                    className="vending-machine"
-                    src={require('../images/vending-machine.jpg')}
+                <VendingMachine
+                    items={items}
+                    cents={this.state.cents}
+                    selectedItemIndex={this.state.selectedItemIndex}
+                    onClickAddCentsButton={this.onClickAddCentsButton}
+                    onClickItem={this.onClickItem}
                 />
-                <div className="operations">
-                    <h3>
-                        Choose an item:
-                    </h3>
-                    <div>
-                        {itemsConfig.map((item, itemIndex) =>
-                            <button
-                                key={itemIndex}
-                                onClick={this.onClickItem.bind(this, itemIndex)}
-                            >
-                                {item.label} – ${item.cost}
-                            </button>
-                        )}
-                    </div>
-
-                    <h3>
-                        Insert money:
-                    </h3>
-                    <div>
-                        {[0.1, 0.5, 1].map(cash =>
-                            <button
-                                key={cash}
-                                onClick={this.onClickAddMoneyButton.bind(this, cash)}
-                            >
-                                ${cash}
-                            </button>
-                        )}
-                    </div>
-
-                    {!!(this.state.selectedItemIndex !== null || this.state.money) &&
-                        <div>
-                            <button
-                                onClick={this.onClickGet}
-                                className="get-it-button"
-                                disabled={
-                                    this.state.selectedItemIndex === null ||
-                                    this.state.money < itemsConfig[this.state.selectedItemIndex].cost
-                                }
-                            >
-                                {this.state.selectedItemIndex !== null ?
-                                    `Get the ${itemsConfig[this.state.selectedItemIndex].label} ($${this.state.money}/${itemsConfig[this.state.selectedItemIndex].cost})`
-                                :
-                                    `Choose an item for $${this.state.money}`
-                                }
-                            </button>
-                        </div>
-                    }
-                </div>
             </div>
         );
     }

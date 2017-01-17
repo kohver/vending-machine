@@ -1,0 +1,13 @@
+.vending-machine-img {
+    width: 300px;
+    float: left;
+}
+
+.operations {
+    float: left;
+}
+
+.get-it-button {
+    margin: 20px;
+    font-size: 24px;
+}
